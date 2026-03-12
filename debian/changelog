@@ -1,3 +1,15 @@
+pve-edk2-firmware (4.2025.05-1~bpo12+1) bookworm; urgency=medium
+
+  * update edk2 to edk2-stable202505 release and refresh patches.
+
+  * use virt-firmware to enroll default keys.
+
+  * initialize the Secure Boot dbx in *.ms.fd with the latest revocations.
+
+  * partially fix #6985: pre-enroll Microsoft UEFI CA 2023 keys.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 12 Mar 2026 11:12:44 +0100
+
 pve-edk2-firmware (4.2025.02-4~bpo12+1) bookworm; urgency=medium
 
   * Rebuild for Proxmox VE 8 based on Debian 12 Bookworm.
