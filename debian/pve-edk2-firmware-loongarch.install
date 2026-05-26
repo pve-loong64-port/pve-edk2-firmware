@@ -1,0 +1,2 @@
+Build/LoongArchVirtQemu/RELEASE_*GCC*/FV/LOONGARCH_CODE.fd /usr/share/pve-edk2-firmware
+Build/LoongArchVirtQemu/RELEASE_*GCC*/FV/LOONGARCH_VARS.fd /usr/share/pve-edk2-firmware

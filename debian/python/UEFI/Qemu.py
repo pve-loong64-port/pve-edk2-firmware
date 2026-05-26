@@ -29,6 +29,7 @@ class QemuEfiMachine(enum.Enum):
     AAVMF = enum.auto()
     AAVMF32 = enum.auto()
     RISCV64 = enum.auto()
+    LOONGARCH64 = enum.auto()
 
 
 class QemuEfiVariant(enum.Enum):
@@ -60,6 +61,9 @@ class QemuCommand:
     RiscV_Common_Params = Qemu_Common_Params + [
         '-machine', 'virt', '-device', 'virtio-serial-device',
     ]
+    LoongArch_Common_Params = Qemu_Common_Params + [
+        '-machine', 'virt', '-device', 'virtio-serial-device',
+    ]
     Machine_Base_Command = {
         QemuEfiMachine.AAVMF: [
             'qemu-system-aarch64', '-cpu', 'cortex-a57',
@@ -79,6 +83,9 @@ class QemuCommand:
         QemuEfiMachine.RISCV64: [
             'qemu-system-riscv64',
         ] + RiscV_Common_Params,
+        QemuEfiMachine.LOONGARCH64: [
+            'qemu-system-loongarch64',
+        ] + LoongArch_Common_Params,
     }
 
     def _get_default_flash_paths(self, machine, variant, flash_size):
@@ -127,6 +134,13 @@ class QemuCommand:
             return (
                 '/usr/share/qemu-efi-riscv64/RISCV_VIRT_CODE.fd',
                 '/usr/share/qemu-efi-riscv64/RISCV_VIRT_VARS.fd',
+            )
+        if machine == QemuEfiMachine.LOONGARCH64:
+            assert(variant is None)
+            assert(flash_size == QemuEfiFlashSize.DEFAULT)
+            return (
+                '/usr/share/qemu-efi-loongarch64/LOONGARCH_CODE.fd',
+                '/usr/share/qemu-efi-loongarch64/LOONGARCH_VARS.fd',
             )
         if variant == QemuEfiVariant.SNAKEOIL:
             # We provide one size - you don't get to pick.
