@@ -8,6 +8,7 @@ BUILD_TYPE ?= RELEASE
 EDK2_TOOLCHAIN = GCC5
 export $(EDK2_TOOLCHAIN)_AARCH64_PREFIX=aarch64-linux-gnu-
 export $(EDK2_TOOLCHAIN)_RISCV64_PREFIX=riscv64-linux-gnu-
+export $(EDK2_TOOLCHAIN)_LOONGARCH64_PREFIX=loongarch64-linux-gnu-
 
 export PYTHON3_ENABLE=TRUE
 
@@ -19,6 +20,9 @@ ifeq ($(DEB_BUILD_ARCH),i386)
 endif
 ifeq ($(DEB_BUILD_ARCH),arm64)
 	EDK2_BUILD_ARCH=AARCH64
+endif
+ifeq ($(DEB_BUILD_ARCH),loong64)
+	EDK2_BUILD_ARCH=LOONGARCH64
 endif
 
 PCD_RELEASE_DATE = $(shell date -d@$(SOURCE_DATE_EPOCH) "+%m/%d/%Y")
@@ -46,6 +50,7 @@ AAVMF_FLAGS += -DTPM2_CONFIG_ENABLE=TRUE
 AAVMF_FLAGS += -DCAVIUM_ERRATUM_27456=TRUE
 
 RISCV64_FLAGS = $(COMMON_FLAGS)
+LOONG64_FLAGS = $(COMMON_FLAGS)
 
 # Clear variables used internally by the edk2 build system
 undefine WORKSPACE
@@ -58,7 +63,7 @@ undefine CONF_PATH
 %:
 	dh $@
 
-override_dh_auto_build: build-qemu-efi-aarch64 build-ovmf build-ovmf32 build-ovmf-sev build-ovmf-tdx build-qemu-efi-riscv64
+override_dh_auto_build: build-qemu-efi-aarch64 build-ovmf build-ovmf32 build-ovmf-sev build-ovmf-tdx build-qemu-efi-riscv64 build-qemu-efi-loong64
 
 debian/setup-build-stamp:
 	cp -a debian/Logo.bmp MdeModulePkg/Logo/Logo.bmp
@@ -115,6 +120,10 @@ AAVMF_PREENROLLED_VARS = $(addprefix $(AAVMF_BUILD_DIR)/FV/,AAVMF_VARS.ms.fd AAV
 RISCV64_BUILD_ROOT = Build/RiscVVirtQemu
 RISCV64_BUILD_DIR = $(RISCV64_BUILD_ROOT)/$(BUILD_TYPE)_$(EDK2_TOOLCHAIN)
 RISCV64_IMAGES    = $(addprefix $(RISCV64_BUILD_DIR)/FV/,RISCV_VIRT_CODE.fd RISCV_VIRT_VARS.fd)
+
+LOONG64_BUILD_ROOT = Build/LoongArchVirtQemu
+LOONG64_BUILD_DIR = $(LOONG64_BUILD_ROOT)/$(BUILD_TYPE)_$(EDK2_TOOLCHAIN)
+LOONG64_IMAGES    = $(addprefix $(LOONG64_BUILD_DIR)/FV/,LOONGARCH_CODE.fd LOONGARCH_VARS.fd)
 
 build-ovmf32: $(OVMF32_BINARIES) $(OVMF32_IMAGES)
 $(OVMF32_BINARIES) $(OVMF32_IMAGES): debian/setup-build-stamp
@@ -255,6 +264,20 @@ $(RISCV64_IMAGES): debian/setup-build-stamp
 	truncate -s 32M $(RISCV64_BUILD_DIR)/FV/RISCV_VIRT_CODE.fd
 	truncate -s 32M $(RISCV64_BUILD_DIR)/FV/RISCV_VIRT_VARS.fd
 
+build-qemu-efi-loong64: $(LOONG64_IMAGES)
+$(LOONG64_IMAGES):
+	set -e; . ./edksetup.sh; \
+		build -a LOONGARCH64 \
+			-t $(EDK2_TOOLCHAIN) \
+			-p OvmfPkg/LoongArchVirt/LoongArchVirtQemu.dsc \
+			$(LOONG64_FLAGS) -b $(BUILD_TYPE)
+	cp $(LOONG64_BUILD_DIR)/FV/QEMU_EFI.fd \
+		$(LOONG64_BUILD_DIR)/FV/LOONGARCH_CODE.fd
+	cp $(LOONG64_BUILD_DIR)/FV/QEMU_VARS.fd \
+		$(LOONG64_BUILD_DIR)/FV/LOONGARCH_VARS.fd
+	truncate -s 16M $(LOONG64_BUILD_DIR)/FV/LOONGARCH_CODE.fd
+	truncate -s 16M $(LOONG64_BUILD_DIR)/FV/LOONGARCH_VARS.fd
+
 override_dh_auto_clean:
 	-. ./edksetup.sh; build clean
 	make -C BaseTools clean
@@ -304,4 +327,4 @@ update-dbx:
 	sed -i -e '/DBXUpdate-/d' debian/source/include-binaries
 	ls debian/DBXUpdate-*.bin >> debian/source/include-binaries
 
-.PHONY: build-ovmf build-ovmf32 build-ovmf-sev build-ovmf-tdx build-qemu-efi build-qemu-efi-aarch64 build-qemu-efi-riscv64 update-dbx
+.PHONY: build-ovmf build-ovmf32 build-ovmf-sev build-ovmf-tdx build-qemu-efi build-qemu-efi-aarch64 build-qemu-efi-riscv64 build-qemu-efi-loong64 update-dbx
