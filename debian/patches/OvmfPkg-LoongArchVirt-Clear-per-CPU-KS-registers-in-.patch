@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dongyan Qian <qiandongyan@loongson.cn>
+Date: Wed, 19 Aug 2026 09:13:59 +0800
+Subject: [PATCH] OvmfPkg/LoongArchVirt: Clear per-CPU KS registers in SEC
+
+The LoongArch KS registers are software scratch state. Firmware cannot
+rely on their values being zero after reset, so values written during a
+previous boot may be observed as stale data.
+
+The early serial library uses KS1 as a firmware-local UART base cache
+and treats a non-zero value as valid. Stale data in KS1 can therefore
+be mistaken for the UART MMIO base during the first SEC debug output.
+
+Clear KS0 through KS8 after disabling local interrupts and before
+reading the CPU ID. Every CPU entering the SEC module therefore clears
+its own scratch-register state before the BSP/AP split. The BSP serial
+path then discovers the UART base from the device tree and stores the
+valid value in KS1 for the remainder of the firmware boot.
+
+Signed-off-by: Dongyan Qian <qiandongyan@loongson.cn>
+Signed-off-by: Chao Li <lichao@loongson.cn>
+---
+ .../EarlyFdtSerialPortLib16550.c                      |  5 +++--
+ OvmfPkg/LoongArchVirt/Sec/LoongArch64/Start.S         | 11 +++++++++++
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/OvmfPkg/LoongArchVirt/Library/EarlyFdtSerialPortLib16550/EarlyFdtSerialPortLib16550.c b/OvmfPkg/LoongArchVirt/Library/EarlyFdtSerialPortLib16550/EarlyFdtSerialPortLib16550.c
+index 8d575592c0..8024ee173b 100644
+--- a/OvmfPkg/LoongArchVirt/Library/EarlyFdtSerialPortLib16550/EarlyFdtSerialPortLib16550.c
++++ b/OvmfPkg/LoongArchVirt/Library/EarlyFdtSerialPortLib16550/EarlyFdtSerialPortLib16550.c
+@@ -128,8 +128,9 @@ GetSerialRegisterBase (
+   UINTN          SerialRegisterBase;
+ 
+   //
+-  // The LoongArchVirt serial hook path uses KS1 to hand off the UART base.
+-  // Reuse it here to avoid repeated FDT lookups during early debug output.
++  // SEC initializes KS1 before the first debug output. The LoongArchVirt
++  // serial hook path then uses it to hand off the UART base. Reuse the value
++  // here to avoid repeated FDT lookups during early debug output.
+   //
+   SerialRegisterBase = CsrRead (LOONGARCH_CSR_KS1);
+   if (SerialRegisterBase != 0) {
+diff --git a/OvmfPkg/LoongArchVirt/Sec/LoongArch64/Start.S b/OvmfPkg/LoongArchVirt/Sec/LoongArch64/Start.S
+index f501a1988a..2e52a784c6 100644
+--- a/OvmfPkg/LoongArchVirt/Sec/LoongArch64/Start.S
++++ b/OvmfPkg/LoongArchVirt/Sec/LoongArch64/Start.S
+@@ -29,6 +29,17 @@ ASM_PFX(_ModuleEntryPoint):
+   li.w     $a0, 0x1FFF
+   bl       DisableLocalInterrupts
+ 
++  /* Clear per-CPU scratch registers left by the previous boot */
++  csrwr    $zero, LOONGARCH_CSR_KS0
++  csrwr    $zero, LOONGARCH_CSR_KS1
++  csrwr    $zero, LOONGARCH_CSR_KS2
++  csrwr    $zero, LOONGARCH_CSR_KS3
++  csrwr    $zero, LOONGARCH_CSR_KS4
++  csrwr    $zero, LOONGARCH_CSR_KS5
++  csrwr    $zero, LOONGARCH_CSR_KS6
++  csrwr    $zero, LOONGARCH_CSR_KS7
++  csrwr    $zero, LOONGARCH_CSR_KS8
++
+   /* Read physical cpu number id */
+   bl       GetApicId
+   li.d     $t0, BOOTCORE_ID  //0

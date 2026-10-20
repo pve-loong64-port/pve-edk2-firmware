@@ -2,3 +2,4 @@ brotlicompress-disable.diff
 x64-baseline-abi.patch
 OvmfPkg-X64-add-opt-org.tianocore-UninstallMemAttrPr.patch
 Enable_SCSI_IntelTdx_DXEFV.patch
+OvmfPkg-LoongArchVirt-Clear-per-CPU-KS-registers-in-.patch
