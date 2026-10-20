@@ -1,3 +1,9 @@
+pve-edk2-firmware (4.2026.08-1+loong2) trixie; urgency=medium
+
+  * enable TPM2 on loongarch64.
+
+ -- Kaiyang Wu <wukaiyang@loongfans.cn>  Wed, 21 Oct 2026 08:45:44 +0200
+
 pve-edk2-firmware (4.2026.08-1) trixie; urgency=medium
 
   * update edk2 to edk2-stable202608 release and refresh patches. Besides many
